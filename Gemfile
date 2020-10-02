@@ -1,3 +1,3 @@
 source "https://rubygems.org"
 gemspec
-gem "jekyll-polyglot"
+gem "jekyll-multiple-languages"
