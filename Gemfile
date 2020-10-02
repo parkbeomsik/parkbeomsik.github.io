@@ -1,3 +1,5 @@
 source "https://rubygems.org"
 gemspec
-gem "jekyll-multiple-languages"
+group :jekyll_plugins do
+    gem "jekyll-multiple-languages"
+end
