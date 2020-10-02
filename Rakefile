@@ -77,7 +77,7 @@ end
 
 # Auto publish
 # Change your GitHub reponame
-GITHUB_REPONAME = "username/username.github.io"
+GITHUB_REPONAME = "parkbeomsik/parkbeomsik.github.io"
 
 desc "Generate blog files"
 task :generate do
