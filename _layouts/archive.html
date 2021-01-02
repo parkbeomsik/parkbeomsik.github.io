@@ -17,6 +17,22 @@ layout: default
 <div id="main" role="main">
   {% include sidebar.html %}
 
+  <nav id="lang-sel" >
+    <ul class="lang">
+        {% capture link1 %}{{ site.baseurl_root }}{{ page.url}}{% endcapture %}
+        {% capture link2 %}{{ site.baseurl_root }}/en{{ page.url}}{% endcapture %}
+        {% if site.lang == "ko" %}
+        <li class="masthead_menu-item visible-links">
+          <a href="{{ link1 }}" class="enabled">{% translate global.korean %} </a>|<a href="{{ link2 }}"> {% translate global.english %}</a>
+        </li>
+        {% elsif site.lang == "en" %}
+        <li class="masthead_menu-item lang">
+          <a href="{{ link1 }}">{% translate global.korean %} </a>|<a href="{{ link2 }}" class="enabled"> {% translate global.english %}</a>
+        </li>
+        {% endif %}
+    </ul>
+  </nav>   
+
   <div class="archive">
     {% unless page.header.overlay_color or page.header.overlay_image %}
       <h1 id="page-title" class="page__title">{{ page.title }}</h1>

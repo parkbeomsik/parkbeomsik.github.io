@@ -23,6 +23,23 @@ layout: default
     {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date_to_xmlschema }}">{% endif %}
     {% if page.last_modified_at %}<meta itemprop="dateModified" content="{{ page.last_modified_at | date_to_xmlschema }}">{% endif %}
 
+    <nav id="lang-sel" >
+      <ul class="lang">
+          {% capture link1 %}{{ site.baseurl_root }}{{ page.url}}{% endcapture %}
+          {% capture link2 %}{{ site.baseurl_root }}/en{{ page.url}}{% endcapture %}
+          {% if site.lang == "ko" %}
+          <li class="masthead_menu-item visible-links">
+            <a href="{{ link1 }}" class="enabled">{% translate global.korean %} </a>|<a href="{{ link2 }}"> {% translate global.english %}</a>
+          </li>
+          {% elsif site.lang == "en" %}
+          <li class="masthead_menu-item lang">
+            <a href="{{ link1 }}">{% translate global.korean %} </a>|<a href="{{ link2 }}" class="enabled"> {% translate global.english %}</a>
+          </li>
+          {% endif %}
+      </ul>
+    </nav>   
+  
+
     <div class="page__inner-wrap">
       {% unless page.header.overlay_color or page.header.overlay_image %}
         <header>
