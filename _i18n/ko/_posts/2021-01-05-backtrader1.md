@@ -21,7 +21,7 @@ tags:
 
 먼저 기본 코드를 살펴보겠습니다.
 
-~~~Python
+~~~python
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -44,16 +44,19 @@ Final Portfolio Value: 1000000.00
 ~~~
 
 
-첫 줄의 from __future__ import ... 부분은 Python 2와 3의 호환을 위한 부분으로, Python 2에서 Python 3의 문법을 사용하기 위해 사용됩니다. 현재 대부분의 유저가 Python 3을 사용하고 있으니 신경쓰지 않아도 되겠습니다. 그리고 backtrader를 import 합니다.  
+첫 줄의 `from __future__ import ...` 부분은 Python 2와 3의 호환을 위한 부분으로, Python 2에서 Python 3의 문법을 사용하기 위해 사용됩니다. 현재 대부분의 유저가 Python 3을 사용하고 있으니 신경쓰지 않아도 되겠습니다. 그리고 backtrader를 import 합니다.  
+
 main 부분에서는 Cerebro engine을 초기화하는데요, 이 Cerebro는 backtrader의 초석<sup>[1](#footnote_1)</sup> 같은 존재입니다. backtrader의 중심이 되는 부분으로 Data Feeds, strategy, observers, analyzers, writers 등을 저장하고, backtesting이나 trading을 진행한다고 합니다. 앞으로 대부분의 과정이 이 Cerebro를 조작한다고 보시면 될 것 같습니다.  
+
 다음으로 `cerebro.broker.setcash(1000000.0)`이 있는데요, broker는 트레이딩을 진행하는 브로커, setcash는 초기 자본을 설정하는 부분입니다.  
+
 마지막으로 `cerebro.run()`을 이용해 cerebro engine을 수행합니다. 본 문서에서는 백테스팅을 실행하는 부분이 되겠군요. 아직 Data feeds나 Strategy를 지정하지 않았으므로 `cerebro.broker.getvalue()`를 이용해 잔고를 출력했을 때, 그대로임을 볼 수 있습니다.
 
 ## Adding a Data Feed & First strategy
 
 다음으로 Data feed를 전달하고, 간단한 트레이딩 전략을 사용하여 백테스팅을 수행해보겠습니다.
 
-~~~Python
+~~~python
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -120,6 +123,12 @@ if __name__ == '__main__':
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 ~~~
 
-코드에 대한 설명은 주석으로 달아놓았습니다. 다만, 살펴보아야 하는 부분들이 있는데요, 첫번째로 FinanceDataReader에 대한 부분입니다. 이 라이브러리는 금융 데이터를 수집하기 위해 개발된 라이브러리인데요, 손쉽게 사용 가능하고, 한글로 된 설명서가 있어 추천드리고 싶습니다. 관심있으신 분은 [FinanceDataReader 사용자 안내서](https://financedata.github.io/posts/finance-data-reader-users-guide.html)를 참고하시면 좋겠습니다. 다음으로 Strategy를 수립하는 부분입니다. 현재 Strategy는 Close가 두번 연속으로 하락했을 때 매수를 진행하는데요, 이를 위해 `self.dataclose`를 사용했습니다. backtrader에서 index 0은 대개 현재 날짜를 의미합니다. 따라서, 전날 데이터를 조회하고 싶을 때는 -1, 전전날 데이터를 조회하고 싶을 때는 -2를 사용합니다. 마지막으로 현재 코드에서는 주식을 "얼마나" 매수할 것인지 나와있지 않은데요, 이후에 이를 설정하는 방법에 대해 살펴보겠습니다.
+코드에 대한 설명은 주석으로 달아놓았습니다.  
+
+다만, 살펴보아야 하는 부분들이 있는데요, 첫번째로 FinanceDataReader에 대한 부분입니다. 이 라이브러리는 금융 데이터를 수집하기 위해 개발된 라이브러리인데요, 손쉽게 사용 가능하고, 한글로 된 설명서가 있어 추천드리고 싶습니다. 관심있으신 분은 [FinanceDataReader 사용자 안내서](https://financedata.github.io/posts/finance-data-reader-users-guide.html)를 참고하시면 좋겠습니다.  
+
+다음으로 Strategy를 수립하는 부분입니다. 현재 Strategy는 Close가 두번 연속으로 하락했을 때 매수를 진행하는데요, 이를 위해 `self.dataclose`를 사용했습니다. backtrader에서 index 0은 대개 현재 날짜를 의미합니다. 따라서, 전날 데이터를 조회하고 싶을 때는 -1, 전전날 데이터를 조회하고 싶을 때는 -2를 사용합니다.  
+
+마지막으로 현재 코드에서는 주식을 "얼마나" 매수할 것인지 나와있지 않은데요, 이후에 이를 설정하는 방법에 대해 살펴보겠습니다.
 
 <a name="footnote_1">1</a>: https://www.backtrader.com/docu/cerebro/
