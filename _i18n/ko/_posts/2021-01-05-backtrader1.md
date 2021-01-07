@@ -108,7 +108,8 @@ if __name__ == '__main__':
     cerebro.addstrategy(TestStrategy)
 
     # 신라젠(215600)의 2018년 데이터를 불러옵니다
-    data = fdr.DataReader('215600', '2018')
+    df = fdr.DataReader('215600', '2018')
+    data = bt.feeds.PandasData(dataname=df)
 
     # cerebro에 data feed를 추가해줍니다
     cerebro.adddata(data)
