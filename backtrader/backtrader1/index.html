@@ -1,0 +1,765 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.20.2 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Backtrader(1): Introduction - Site Title</title>
+<meta name="description" content="안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다. 본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.">
+
+
+  <meta name="author" content="Your Name">
+  
+  <meta property="article:author" content="Your Name">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Site Title">
+<meta property="og:title" content="Backtrader(1): Introduction">
+<meta property="og:url" content="/backtrader/backtrader1/">
+
+
+  <meta property="og:description" content="안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다. 본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-01-05T00:00:00+00:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="/backtrader/backtrader1/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "Your Name",
+      "url": "/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="Site Title Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          Site Title
+          
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a href="https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/">Quick-Start Guide</a>
+            </li><li class="masthead__menu-item">
+              <a href="/categories/">Category</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+      <!-- <nav id="lang-sel" >
+        <ul class="lang">
+            
+            
+            
+            <li class="masthead_menu-item visible-links">
+              <a href="/test-2/" class="enabled">Kor </a>|<a href="/en/test-2/"> Eng</a>
+            </li>
+            
+        </ul>
+      </nav>        -->
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">Your Name</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>I am an <strong>amazing</strong> person.</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">Somewhere</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Backtrader(1): Introduction">
+    <meta itemprop="description" content="안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다.본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.">
+    <meta itemprop="datePublished" content="2021-01-05T00:00:00+00:00">
+    
+
+    <nav id="lang-sel" >
+      <ul class="lang">
+          
+          
+          
+          <li class="masthead_menu-item visible-links">
+            <a href="/backtrader/backtrader1/" class="enabled">Kor </a>|<a href="/en/backtrader/backtrader1/"> Eng</a>
+          </li>
+          
+      </ul>
+    </nav>   
+  
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Backtrader(1): Introduction
+</h1>
+          
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          2 minute read
+        
+      </span>
+    
+  </p>
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+        <p>안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다.<br />
+본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.</p>
+
+<p>먼저 Docu의 Introduction 항목을 보면 backtrader의 두 가지 목표가 아래와 같이 나와있습니다. (“베스트 키드”에서 미야기의 룰을 인용했다고 밝히기도 합니다.)</p>
+
+<ol>
+  <li>손쉬운 사용</li>
+  <li>1번으로 돌아갈 것</li>
+</ol>
+
+<p>이처럼 사용의 용이성을 목표로 만들었지만, 퀀트와 백테스팅 개념 자체가 익숙치 않은 만큼 곧바로 사용하기는 어려웠습니다. 그래서 관련된 자료를 찾아보던 중 한국어로 된 자료가 많지 않아 앞으로 공부한 내용을 정리해보려 합니다.</p>
+
+<h2 id="basic-setup--setting-the-cash">Basic Setup &amp; Setting the Cash</h2>
+
+<p>먼저 기본 코드를 살펴보겠습니다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="p">(</span><span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span>
+                        <span class="n">unicode_literals</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">backtrader</span> <span class="k">as</span> <span class="n">bt</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">cerebro</span> <span class="o">=</span> <span class="n">bt</span><span class="p">.</span><span class="n">Cerebro</span><span class="p">()</span>
+    <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">setcash</span><span class="p">(</span><span class="mf">1000000.0</span><span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'Starting Portfolio Value: %.2f'</span> <span class="o">%</span> <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+    <span class="n">cerebro</span><span class="p">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'Final Portfolio Value: %.2f'</span> <span class="o">%</span> <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">getvalue</span><span class="p">())</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Starting Portfolio Value: 1000000.00
+Final Portfolio Value: 1000000.00
+</code></pre></div></div>
+
+<p>첫 줄의 <code class="language-plaintext highlighter-rouge">from __future__ import ...</code> 부분은 Python 2와 3의 호환을 위한 부분으로, Python 2에서 Python 3의 문법을 사용하기 위해 사용됩니다. 현재 대부분의 유저가 Python 3을 사용하고 있으니 신경쓰지 않아도 되겠습니다. 그리고 backtrader를 import 합니다.</p>
+
+<p>main 부분에서는 Cerebro engine을 초기화하는데요, 이 Cerebro는 backtrader의 초석<sup><a href="#footnote_1">1</a></sup> 같은 존재입니다. backtrader의 중심이 되는 부분으로 Data Feeds, strategy, observers, analyzers, writers 등을 저장하고, backtesting이나 trading을 진행한다고 합니다. 앞으로 대부분의 과정이 이 Cerebro를 조작한다고 보시면 될 것 같습니다.</p>
+
+<p>다음으로 <code class="language-plaintext highlighter-rouge">cerebro.broker.setcash(1000000.0)</code>이 있는데요, broker는 트레이딩을 진행하는 브로커, setcash는 초기 자본을 설정하는 부분입니다.</p>
+
+<p>마지막으로 <code class="language-plaintext highlighter-rouge">cerebro.run()</code>을 이용해 cerebro engine을 수행합니다. 본 문서에서는 백테스팅을 실행하는 부분이 되겠군요. 아직 Data feeds나 Strategy를 지정하지 않았으므로 <code class="language-plaintext highlighter-rouge">cerebro.broker.getvalue()</code>를 이용해 잔고를 출력했을 때, 그대로임을 볼 수 있습니다.</p>
+
+<h2 id="adding-a-data-feed--first-strategy">Adding a Data Feed &amp; First strategy</h2>
+
+<p>다음으로 Data feed를 전달하고, 간단한 트레이딩 전략을 사용하여 백테스팅을 수행해보겠습니다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="p">(</span><span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span>
+                        <span class="n">unicode_literals</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>  <span class="c1"># 시간, 날짜 데이터 타입이 있는 라이브러리입니다
+</span><span class="kn">import</span> <span class="nn">os.path</span>  <span class="c1"># 파일의 path를 관리하기 위한 라이브러리입니다
+</span><span class="kn">import</span> <span class="nn">sys</span>  <span class="c1"># system 전반적인 컨트롤을 위한 라이브러리로, 여기서는 script의 이름(argv[0])을 읽기 위해 사용됩니다
+</span>
+<span class="c1"># backtrader 플랫폼을 import합니다
+</span><span class="kn">import</span> <span class="nn">backtrader</span> <span class="k">as</span> <span class="n">bt</span>
+
+<span class="c1"># 금융 데이터 수집 라이브러리입니다
+# https://financedata.github.io/index.html
+</span><span class="kn">import</span> <span class="nn">FinanceDataReader</span> <span class="k">as</span> <span class="n">fdr</span>
+
+<span class="c1"># Strategy를 수립합니다
+</span><span class="k">class</span> <span class="nc">TestStrategy</span><span class="p">(</span><span class="n">bt</span><span class="p">.</span><span class="n">Strategy</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c1"># Strategy가 잘 작동하고 있는지 기록하는 함수입니다
+</span>        <span class="c1"># 앞으로 대다수의 로그는 이 함수를 이용해 기록될 예정입니다
+</span>        <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span> <span class="ow">or</span> <span class="bp">self</span><span class="p">.</span><span class="n">datas</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">datetime</span><span class="p">.</span><span class="n">date</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'%s, %s'</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="p">.</span><span class="n">isoformat</span><span class="p">(),</span> <span class="n">txt</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 과거 주식 데이터가 self.datas에 저장되어있고,
+</span>        <span class="c1"># close(종가)를 추적하기 위해 멤버 변수를 설정했습니다
+</span>        <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">datas</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">close</span>
+
+    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 현재 시점에서 close를 기록합니다
+</span>        <span class="bp">self</span><span class="p">.</span><span class="n">log</span><span class="p">(</span><span class="s">'Close, %.2f'</span> <span class="o">%</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># 현재 close가 전날 close보다 작은 상황입니다
+</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="c1"># 또한 전날 close가 전전날 close보다 작은 상황입니다 
+</span>
+                <span class="c1"># 주식을 매수합니다. 다만 현재에는 기본 파라미터만을 사용하여 매수를 진행합니다
+</span>                <span class="c1"># 파라미터를 어떻게 설정할 수 있는지는 추후에 보도록 하겠습니다
+</span>                <span class="bp">self</span><span class="p">.</span><span class="n">log</span><span class="p">(</span><span class="s">'BUY CREATE, %.2f'</span> <span class="o">%</span> <span class="bp">self</span><span class="p">.</span><span class="n">dataclose</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="p">.</span><span class="n">buy</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">cerebro</span> <span class="o">=</span> <span class="n">bt</span><span class="p">.</span><span class="n">Cerebro</span><span class="p">()</span>
+
+    <span class="c1"># cerebro에 전략을 추가해줍니다
+</span>    <span class="n">cerebro</span><span class="p">.</span><span class="n">addstrategy</span><span class="p">(</span><span class="n">TestStrategy</span><span class="p">)</span>
+
+    <span class="c1"># 신라젠(215600)의 2018년 데이터를 불러옵니다
+</span>    <span class="n">df</span> <span class="o">=</span> <span class="n">fdr</span><span class="p">.</span><span class="n">DataReader</span><span class="p">(</span><span class="s">'215600'</span><span class="p">,</span> <span class="s">'2018'</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">bt</span><span class="p">.</span><span class="n">feeds</span><span class="p">.</span><span class="n">PandasData</span><span class="p">(</span><span class="n">dataname</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="c1"># cerebro에 data feed를 추가해줍니다
+</span>    <span class="n">cerebro</span><span class="p">.</span><span class="n">adddata</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="c1"># 초기 자본을 설정합니다
+</span>    <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">setcash</span><span class="p">(</span><span class="mf">100000.0</span><span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'Starting Portfolio Value: %.2f'</span> <span class="o">%</span> <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+    <span class="n">cerebro</span><span class="p">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'Final Portfolio Value: %.2f'</span> <span class="o">%</span> <span class="n">cerebro</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">getvalue</span><span class="p">())</span>
+</code></pre></div></div>
+
+<p>코드에 대한 설명은 주석으로 달아놓았습니다.</p>
+
+<p>다만, 살펴보아야 하는 부분들이 있는데요, 첫번째로 FinanceDataReader에 대한 부분입니다. 이 라이브러리는 금융 데이터를 수집하기 위해 개발된 라이브러리인데요, 손쉽게 사용 가능하고, 한글로 된 설명서가 있어 추천드리고 싶습니다. 관심있으신 분은 <a href="https://financedata.github.io/posts/finance-data-reader-users-guide.html">FinanceDataReader 사용자 안내서</a>를 참고하시면 좋겠습니다.</p>
+
+<p>다음으로 Strategy를 수립하는 부분입니다. 현재 Strategy는 Close가 두번 연속으로 하락했을 때 매수를 진행하는데요, 이를 위해 <code class="language-plaintext highlighter-rouge">self.dataclose</code>를 사용했습니다. backtrader에서 index 0은 대개 현재 날짜를 의미합니다. 따라서, 전날 데이터를 조회하고 싶을 때는 -1, 전전날 데이터를 조회하고 싶을 때는 -2를 사용합니다.</p>
+
+<p>마지막으로 현재 코드에서는 주식을 “얼마나” 매수할 것인지 나와있지 않은데요, 이후에 이를 설정하는 방법에 대해 살펴보겠습니다.</p>
+
+<p><a name="footnote_1">1</a>: https://www.backtrader.com/docu/cerebro/</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#backtrader" class="page__taxonomy-item" rel="tag">Backtrader</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#quant" class="page__taxonomy-item" rel="tag">Quant</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#backtrader" class="page__taxonomy-item" rel="tag">Backtrader</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-01-05T00:00:00+00:00">January 5, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Backtrader%281%29%3A+Introduction%20%2Fbacktrader%2Fbacktrader1%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=%2Fbacktrader%2Fbacktrader1%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=%2Fbacktrader%2Fbacktrader1%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/system,%20architecture/Eyeriss/" class="pagination--pager" title="Eyeriss 리뷰: CNN 가속기
+">Previous</a>
+    
+    
+      <a href="/backtrader/backtrader2/" class="pagination--pager" title="Backtrader(7): Sell &amp; commision
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You may also enjoy</h4>
+      <div class="grid__wrapper">
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/microarchitecture/A3/" rel="permalink">A3: Accerelator for attention layer
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          4 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문1을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/backtrader/backtrader2/" rel="permalink">Backtrader(7): Sell &amp; commision
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          6 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">Sell &amp; Commision
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/system,%20architecture/Eyeriss/" rel="permalink">Eyeriss 리뷰: CNN 가속기
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">Nested and mixed lists are an interesting beast. It’s a corner case to make sure that
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/test/" rel="permalink">Test
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">안녕하세요
+</p>
+  </article>
+</div>
+
+        
+      </div>
+    </div>
+  
+  
+</div>
+
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2021 Your Name. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

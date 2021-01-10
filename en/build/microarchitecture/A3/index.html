@@ -1,0 +1,692 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.20.2 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>A3: Accerelator for attention layer - Site Title</title>
+<meta name="description" content="안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문1을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.">
+
+
+  <meta name="author" content="Your Name">
+  
+  <meta property="article:author" content="Your Name">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Site Title">
+<meta property="og:title" content="A3: Accerelator for attention layer">
+<meta property="og:url" content="/microarchitecture/A3/">
+
+
+  <meta property="og:description" content="안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문1을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-01-09T00:00:00+00:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="/microarchitecture/A3/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "Your Name",
+      "url": "/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="Site Title Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          Site Title
+          
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a href="https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/">Quick-Start Guide</a>
+            </li><li class="masthead__menu-item">
+              <a href="/categories/">Category</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+      <!-- <nav id="lang-sel" >
+        <ul class="lang">
+            
+            
+            
+            <li class="masthead_menu-item visible-links">
+              <a href="/test-2/" class="enabled">Kor </a>|<a href="/en/test-2/"> Eng</a>
+            </li>
+            
+        </ul>
+      </nav>        -->
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">Your Name</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>I am an <strong>amazing</strong> person.</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">Somewhere</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="A3: Accerelator for attention layer">
+    <meta itemprop="description" content="안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문1을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.">
+    <meta itemprop="datePublished" content="2021-01-09T00:00:00+00:00">
+    
+
+    <nav id="lang-sel" >
+      <ul class="lang">
+          
+          
+          
+          <li class="masthead_menu-item visible-links">
+            <a href="/microarchitecture/A3/" class="enabled">Kor </a>|<a href="/en/microarchitecture/A3/"> Eng</a>
+          </li>
+          
+      </ul>
+    </nav>   
+  
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">A3: Accerelator for attention layer
+</h1>
+          
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          4 minute read
+        
+      </span>
+    
+  </p>
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+        <p>안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문<sup><a href="#footnote_1">1</a></sup>을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1Ixf66K-QTCCFBBn12BwD5CEmcWq8j0Zv" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>인공 신경망(Neural networks)이 많은 AI 문제를 해결할 수 있음이 밝혀짐에 다라, 이를 지원하기 위한 하드웨어 연구도 활발해지고 있습니다. 그 중 대표적인 것이 Diannao, Eyeriss 등인데요, 이들은 FPGA 또는 ASIC 기반의 디자인으로 CNN이나 RNN과 같은 망을 효율적으로 계산할 수 있었습니다. 하지만 최근 떠오르는 방식인 Attention mechanism을 지원하기 위한 하드웨어 디자인에 대해서 연구가 덜 되어있는데요, A3는 이 Attention mechanism을 가속화하는 방법에 대한 연구입니다.</p>
+
+<p>그 전에 먼저 Attention mechanism에 대해 알아보겠습니다. Attention mechanism은 자연어 처리 분야에서 많이 사용되는 기법으로, 여러 단어 혹은 여러 상태(state) 간의 관계를 학습에 반영하기 위한 목적을 가지고 있습니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1lZfV3KQORwcElY0WKL1N_DtKlasTzhOx" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>Attention mechanism에는 Query, Key, Value 이렇게 세가지 종류의 벡터가 사용됩니다. 보통 Query vector는 하나, key와 value vector는 여러개가 사용됩니다. 첫번째로 먼저 Query vector와 각각 key vector의 유사도(similarity score)를 내적(dot-product)같은 방식으로 구합니다. 그리고 이를 softmax함수를 이용해 합계가 1이 되도록 스케일링 해준뒤, 그 결과를 가중치로 하여 Value vector들을 가중합(Weighted sum)해줍니다. 이렇게 나온 결과를 Attention score라 하며, 이 과정이 Attention mechanism입니다. 위 그림은 한 예로, Statements들이 Key vector, Query가 Query vector이며, 이 벡터들의 유사도를 이용해 Attention mechanism을 수행하는 모습입니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1HkAxHC1H1eG3oikAiO60qJZ3zO3ScwOH" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>A3의 연구진은 먼저 Attention mechanism을 사용하는 3가지 모델들에 대해서 characterizaion을 수행했습니다. 그 결과 이들은 Attention mechanism이 3가지 모델에서 모두 연산 시간 중 많은 부분(약 35%)을 차지함을 발견했습니다. 또한, 전체 추론 중 많은 시간이 이미 제공된 지식들을 통계내는 데 많은 시간을 할애하고, 이는 Query 입력값이 들어오기 전에 처리할 수 있다는 점에 착안하여 이를 제외한 실제 question-answering task를 수행하는 시간에 대해서 characterizaion을 수행했습니다. 그 결과, Attention mechanism이 전체 연산 시간 중 차지하는 비율이 더 높아짐을 확인했습니다.</p>
+
+<p>A3는 이런 Attention mechanism을 효율적으로 계산하기 위한 가속기인데요, 이들은 병렬성(parallelism)을 극대화하기 위한 datapath를 설계하고 이를 위한 pipeline을 디자인했습니다. A3는 크게 3개의 모듈로 구성되어 있는데요, 이들은 Query와 Key의 유사도를 구하기 위한 <code class="language-plaintext highlighter-rouge">Dot-Product</code>모듈, Softmax함수 구현을 위한 <code class="language-plaintext highlighter-rouge">Exponent Computation</code>모듈, 그리고 Value의 가중합을 위한 <code class="language-plaintext highlighter-rouge">Output Computation</code>모듈입니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1dp6XdfDGwb3iFHE3p5OM-aKeTspG9j7y" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>먼저 첫번째 모듈에서는 Key vector와 query vector간의 내적을 계산합니다. 이때, 각 element들은 병렬적으로 계산하기 위해 여러개의 multipliers와 adder tree를 사용합니다. 또한 이렇게 구한 유사도 중 최대값을 구하는데요, 이 최대값은 다음 모듈에서 사용됩니다.</p>
+
+<p>두번째 모듈에서는 softmax함수를 구현하기 위해 Exponent를 계산합니다. 그리고 exponent를 빠르게 계산하기 위해 lookup table 방식을 사용합니다. 이 때, lookup table 방식은 두 가지 문제점이 있는데요, 첫번째로 exponent function의 결과값이 input이 증가함에 따라 너무 빠르게 증가하여 overflow를 일으키기 쉽고, 두번재로 lookup table의 크기가 너무 커진다는 것입니다. 먼저 첫번째 문제를 해결하기 위해 이전 모듈에서 구했던 유사도의 최대값을 이용합니다. softmax 함수는 각 element에 상수항을 더하거나 빼도 결과가 불변하기 때문에 모든 element들에서 element 중 최대값을 빼주는데요, 이렇게 하면 모든 element가 0 이하로 맞춰지기 때문에 exponent function의 결과값이 1 이하가 됩니다. 그리고 두번째 문제를 해결하기 위해서 그들은 하나의 exponent operation이 두 개의 exponent operation으로 분리될 수 있음을 이용합니다. 따라서 두 개의 작은 lookup table만으로 하나의 큰 lookup table을 가지고 있는 효과를 낼 수 있습니다.</p>
+
+<p>마지막으로 attention score를 계산합니다. 이들은 앞서 계산한 score vector의 각 element들을 score의 총합으로 나누어주고(normalization), 이를 scaling factor로 하여 Value vector들을 가중합(Weighted sum)합니다. 그리고 가중합된 결과는 <code class="language-plaintext highlighter-rouge">output</code> register에 저장되고, 이 값이 최종 Attention score가 됩니다.</p>
+
+<p>다음으로 연구진들은 Attention mechanism을 더 효율적으로 계산하기 위해 Approximation 방법을 제안합니다. 주된 아이디어는 모든 Value vector들이 Attention score에 많은 영향을 미치지는 않는다는 것입니다. 앞서 Query와 Key의 유사도를 계산할 때, 0에 가까운 값이 많이 나오는데요, 이런 값들은 굳이 계산하지 않고 0으로 근사해도 전체 성능에 큰 영향을 미치지 않음을 알 수 있었습니다. 따라서, 이런 값들을 0으로 근사하고 Value를 가중합할 때 계산하지 않으면 Latency와 Power를 줄일 수 있을 것입니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1rhiwFLmeYKkuEKYE7Y4Upa3EoEXYI4RF" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>하지만, 이 방법을 사용하더라도 전체 Key들에 대한 유사도는 계산해야 하는데요, 이들은 유사도를 끝까지 계산하지 않고도 그 Key vector가 score에 많은 영향을 미칠지 아닐지 구하는 greedy algorithm을 제안합니다. 위 그림에서와 같이 먼저 Key Matrix(Key vector들의 집합)와 Query matrix를 Element별로 곱셈해주고, 이렇게 나온 결과 중 최대값들과 최솟값들을 찾습니다. 그리고 이 값들만 더하여 Greedy score로 사용하면 최종 True score와 얼추 비슷한 경향을 보임을 알 수 있습니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1pa9P621TBh-pK7A5G40C28Xsvl4EvWRm" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>이 Greedy search의 장점은 유사도를 끝까지 계산하지 않아도 되는 점도 있지만, Key Matrix에서 Column별로 정렬(sort)해놓으면 Greedy score를 산출하는 과정을 훨씬 단축시킬 수 있다는 점에 있습니다. 위 그림과 같이 먼저 Query vector가 양수인 index는 최댓값을, 음수인 index는 최솟값을 Key Matrix의 각 Column에서 뽑습니다. 그리고, 이를 Query element와 곱한 값을 score로 하고 rowID와 colID와 함께 maxQ(Priority queue)에 넣습니다. 이렇게 하면 maxQ 중 최댓값이 Key matrix와 Query matrix를 element-wise multiplication했을 때 각 element 중 최댓값과 같을 것입니다. 그리고 maxQ에서 최댓값으로 뽑힌 Key Matrix의 column에서 다음 최댓값(혹은 최솟값)을 뽑아 Query element와 곱한 뒤 maxQ에 넣어주면 Greedy search를 빠르게 수행할 수 있습니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1sdmlaRI-Qidzj6zSVIicA4UPeP1QbjH4" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>연구진은 이 Approximation을 지원하는 Microarchitecture도 디자인했는데요, 위 그림과 같습니다. 먼저 앞서 보았든 미리 sorting된 Key matrix가 가운데에 저장되어 있고, 이전에서 MaxQ(혹은 MinQ)에서 최댓값(혹은 최솟값)으로 뽑힌 column index를 이용해 값을 가져옵니다. 그리고 이를 Query element와 곱한 뒤 Component mulplication buffer에 넣어줍니다. 그리고 이 Component mulplication buffer에서 최댓값 혹은 최솟값을 찾아 Greedy score에 합산해줍니다.</p>
+
+<p>Evaluation에서는 페이스북의 End-to-End Memory Network (MemN2N), Key-Value Memory Network (KV-MemN2N), 그리고 구글의 BERT 모델이 사용되었습니다. 또한, task로는 각각 모두 QA task인 bAbI QA task, Wiki-movies question-answering task, SQuAD v1.1 task를 사용했습니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1A9Uy4Dx8CKTeip10Zm2JOHQHgeV_Uiwe" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>먼저 Approximation 방식에 대한 End-to-End accuracy를 계산했는데요, conservative한 approximation을 사용할 때는, 전체 accuracy가 크게 떨어지지 않음을 볼 수 있습니다. 다만, Aggressive한 approximation을 사용하면 accuracy가 꽤 떨어짐을 볼 수 있는데요, 연구진들은 이에 대해 Aggressive한 approximation을 사용할 때는 speedup과 energy efficiency 증가 효과로 인해 더 큰 모델을 사용할 수 있고, 이를 통해 더 좋은 정확도를 얻을 수도 있을 거라고 예상합니다.</p>
+
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1vTGynZfJ6y1UjnuAQjPhmMku8AX65RU-" alt="ex_screenshot" /><sup><a href="#footnote_1">1</a></sup></p>
+
+<p>또한, A3 architecture를 사용했을 때, Throughput과 Latency를 구해보았는데요, 그 결과 CPU(Intel Xeon Gold 6128)나 GPU(NVIDIA Titan V)를 사용했을 때보다 훨씬 좋은 성능을 보여줌을 확인 할 수 있었습니다.</p>
+
+<p><a name="footnote_1">1</a>: Ham, Tae Jun et al. “A^3: Accelerating Attention Mechanisms in Neural Networks with Approximation.” 2020 IEEE International Symposium on High Performance Computer Architecture (HPCA) (2020): 328-341.</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#ai-%EA%B0%80%EC%86%8D%EA%B8%B0" class="page__taxonomy-item" rel="tag">AI 가속기</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#transformer" class="page__taxonomy-item" rel="tag">Transformer</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#microarchitecture" class="page__taxonomy-item" rel="tag">Microarchitecture</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-01-09T00:00:00+00:00">January 9, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=A3%3A+Accerelator+for+attention+layer%20%2Fmicroarchitecture%2FA3%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=%2Fmicroarchitecture%2FA3%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=%2Fmicroarchitecture%2FA3%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/backtrader/backtrader2/" class="pagination--pager" title="Backtrader(7): Sell &amp; commision
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You may also enjoy</h4>
+      <div class="grid__wrapper">
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/backtrader/backtrader2/" rel="permalink">Backtrader(7): Sell &amp; commision
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          6 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">Sell &amp; Commision
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/backtrader/backtrader1/" rel="permalink">Backtrader(1): Introduction
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          2 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다.
+본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/system,%20architecture/Eyeriss/" rel="permalink">Eyeriss 리뷰: CNN 가속기
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">Nested and mixed lists are an interesting beast. It’s a corner case to make sure that
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/test/" rel="permalink">Test
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">안녕하세요
+</p>
+  </article>
+</div>
+
+        
+      </div>
+    </div>
+  
+  
+</div>
+
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2021 Your Name. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

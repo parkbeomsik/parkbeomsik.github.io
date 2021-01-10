@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ko"><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" hreflang="ko" /><updated>2021-01-10T07:21:36+00:00</updated><id>/feed.xml</id><title type="html">Site Title</title><subtitle>An amazing website.</subtitle><author><name>Your Name</name></author><entry><title type="html">A3: Accerelator for attention layer</title><link href="/microarchitecture/A3/" rel="alternate" type="text/html" title="A3: Accerelator for attention layer" /><published>2021-01-09T00:00:00+00:00</published><updated>2021-01-09T00:00:00+00:00</updated><id>/microarchitecture/A3</id><content type="html" xml:base="/microarchitecture/A3/">&lt;p&gt;안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1Ixf66K-QTCCFBBn12BwD5CEmcWq8j0Zv&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;인공 신경망(Neural networks)이 많은 AI 문제를 해결할 수 있음이 밝혀짐에 다라, 이를 지원하기 위한 하드웨어 연구도 활발해지고 있습니다. 그 중 대표적인 것이 Diannao, Eyeriss 등인데요, 이들은 FPGA 또는 ASIC 기반의 디자인으로 CNN이나 RNN과 같은 망을 효율적으로 계산할 수 있었습니다. 하지만 최근 떠오르는 방식인 Attention mechanism을 지원하기 위한 하드웨어 디자인에 대해서 연구가 덜 되어있는데요, A3는 이 Attention mechanism을 가속화하는 방법에 대한 연구입니다.&lt;/p&gt;
+
+&lt;p&gt;그 전에 먼저 Attention mechanism에 대해 알아보겠습니다. Attention mechanism은 자연어 처리 분야에서 많이 사용되는 기법으로, 여러 단어 혹은 여러 상태(state) 간의 관계를 학습에 반영하기 위한 목적을 가지고 있습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1lZfV3KQORwcElY0WKL1N_DtKlasTzhOx&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;Attention mechanism에는 Query, Key, Value 이렇게 세가지 종류의 벡터가 사용됩니다. 보통 Query vector는 하나, key와 value vector는 여러개가 사용됩니다. 첫번째로 먼저 Query vector와 각각 key vector의 유사도(similarity score)를 내적(dot-product)같은 방식으로 구합니다. 그리고 이를 softmax함수를 이용해 합계가 1이 되도록 스케일링 해준뒤, 그 결과를 가중치로 하여 Value vector들을 가중합(Weighted sum)해줍니다. 이렇게 나온 결과를 Attention score라 하며, 이 과정이 Attention mechanism입니다. 위 그림은 한 예로, Statements들이 Key vector, Query가 Query vector이며, 이 벡터들의 유사도를 이용해 Attention mechanism을 수행하는 모습입니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1HkAxHC1H1eG3oikAiO60qJZ3zO3ScwOH&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;A3의 연구진은 먼저 Attention mechanism을 사용하는 3가지 모델들에 대해서 characterizaion을 수행했습니다. 그 결과 이들은 Attention mechanism이 3가지 모델에서 모두 연산 시간 중 많은 부분(약 35%)을 차지함을 발견했습니다. 또한, 전체 추론 중 많은 시간이 이미 제공된 지식들을 통계내는 데 많은 시간을 할애하고, 이는 Query 입력값이 들어오기 전에 처리할 수 있다는 점에 착안하여 이를 제외한 실제 question-answering task를 수행하는 시간에 대해서 characterizaion을 수행했습니다. 그 결과, Attention mechanism이 전체 연산 시간 중 차지하는 비율이 더 높아짐을 확인했습니다.&lt;/p&gt;
+
+&lt;p&gt;A3는 이런 Attention mechanism을 효율적으로 계산하기 위한 가속기인데요, 이들은 병렬성(parallelism)을 극대화하기 위한 datapath를 설계하고 이를 위한 pipeline을 디자인했습니다. A3는 크게 3개의 모듈로 구성되어 있는데요, 이들은 Query와 Key의 유사도를 구하기 위한 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Dot-Product&lt;/code&gt;모듈, Softmax함수 구현을 위한 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Exponent Computation&lt;/code&gt;모듈, 그리고 Value의 가중합을 위한 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Output Computation&lt;/code&gt;모듈입니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1dp6XdfDGwb3iFHE3p5OM-aKeTspG9j7y&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;먼저 첫번째 모듈에서는 Key vector와 query vector간의 내적을 계산합니다. 이때, 각 element들은 병렬적으로 계산하기 위해 여러개의 multipliers와 adder tree를 사용합니다. 또한 이렇게 구한 유사도 중 최대값을 구하는데요, 이 최대값은 다음 모듈에서 사용됩니다.&lt;/p&gt;
+
+&lt;p&gt;두번째 모듈에서는 softmax함수를 구현하기 위해 Exponent를 계산합니다. 그리고 exponent를 빠르게 계산하기 위해 lookup table 방식을 사용합니다. 이 때, lookup table 방식은 두 가지 문제점이 있는데요, 첫번째로 exponent function의 결과값이 input이 증가함에 따라 너무 빠르게 증가하여 overflow를 일으키기 쉽고, 두번재로 lookup table의 크기가 너무 커진다는 것입니다. 먼저 첫번째 문제를 해결하기 위해 이전 모듈에서 구했던 유사도의 최대값을 이용합니다. softmax 함수는 각 element에 상수항을 더하거나 빼도 결과가 불변하기 때문에 모든 element들에서 element 중 최대값을 빼주는데요, 이렇게 하면 모든 element가 0 이하로 맞춰지기 때문에 exponent function의 결과값이 1 이하가 됩니다. 그리고 두번째 문제를 해결하기 위해서 그들은 하나의 exponent operation이 두 개의 exponent operation으로 분리될 수 있음을 이용합니다. 따라서 두 개의 작은 lookup table만으로 하나의 큰 lookup table을 가지고 있는 효과를 낼 수 있습니다.&lt;/p&gt;
+
+&lt;p&gt;마지막으로 attention score를 계산합니다. 이들은 앞서 계산한 score vector의 각 element들을 score의 총합으로 나누어주고(normalization), 이를 scaling factor로 하여 Value vector들을 가중합(Weighted sum)합니다. 그리고 가중합된 결과는 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;output&lt;/code&gt; register에 저장되고, 이 값이 최종 Attention score가 됩니다.&lt;/p&gt;
+
+&lt;p&gt;다음으로 연구진들은 Attention mechanism을 더 효율적으로 계산하기 위해 Approximation 방법을 제안합니다. 주된 아이디어는 모든 Value vector들이 Attention score에 많은 영향을 미치지는 않는다는 것입니다. 앞서 Query와 Key의 유사도를 계산할 때, 0에 가까운 값이 많이 나오는데요, 이런 값들은 굳이 계산하지 않고 0으로 근사해도 전체 성능에 큰 영향을 미치지 않음을 알 수 있었습니다. 따라서, 이런 값들을 0으로 근사하고 Value를 가중합할 때 계산하지 않으면 Latency와 Power를 줄일 수 있을 것입니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1rhiwFLmeYKkuEKYE7Y4Upa3EoEXYI4RF&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;하지만, 이 방법을 사용하더라도 전체 Key들에 대한 유사도는 계산해야 하는데요, 이들은 유사도를 끝까지 계산하지 않고도 그 Key vector가 score에 많은 영향을 미칠지 아닐지 구하는 greedy algorithm을 제안합니다. 위 그림에서와 같이 먼저 Key Matrix(Key vector들의 집합)와 Query matrix를 Element별로 곱셈해주고, 이렇게 나온 결과 중 최대값들과 최솟값들을 찾습니다. 그리고 이 값들만 더하여 Greedy score로 사용하면 최종 True score와 얼추 비슷한 경향을 보임을 알 수 있습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1pa9P621TBh-pK7A5G40C28Xsvl4EvWRm&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;이 Greedy search의 장점은 유사도를 끝까지 계산하지 않아도 되는 점도 있지만, Key Matrix에서 Column별로 정렬(sort)해놓으면 Greedy score를 산출하는 과정을 훨씬 단축시킬 수 있다는 점에 있습니다. 위 그림과 같이 먼저 Query vector가 양수인 index는 최댓값을, 음수인 index는 최솟값을 Key Matrix의 각 Column에서 뽑습니다. 그리고, 이를 Query element와 곱한 값을 score로 하고 rowID와 colID와 함께 maxQ(Priority queue)에 넣습니다. 이렇게 하면 maxQ 중 최댓값이 Key matrix와 Query matrix를 element-wise multiplication했을 때 각 element 중 최댓값과 같을 것입니다. 그리고 maxQ에서 최댓값으로 뽑힌 Key Matrix의 column에서 다음 최댓값(혹은 최솟값)을 뽑아 Query element와 곱한 뒤 maxQ에 넣어주면 Greedy search를 빠르게 수행할 수 있습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1sdmlaRI-Qidzj6zSVIicA4UPeP1QbjH4&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;연구진은 이 Approximation을 지원하는 Microarchitecture도 디자인했는데요, 위 그림과 같습니다. 먼저 앞서 보았든 미리 sorting된 Key matrix가 가운데에 저장되어 있고, 이전에서 MaxQ(혹은 MinQ)에서 최댓값(혹은 최솟값)으로 뽑힌 column index를 이용해 값을 가져옵니다. 그리고 이를 Query element와 곱한 뒤 Component mulplication buffer에 넣어줍니다. 그리고 이 Component mulplication buffer에서 최댓값 혹은 최솟값을 찾아 Greedy score에 합산해줍니다.&lt;/p&gt;
+
+&lt;p&gt;Evaluation에서는 페이스북의 End-to-End Memory Network (MemN2N), Key-Value Memory Network (KV-MemN2N), 그리고 구글의 BERT 모델이 사용되었습니다. 또한, task로는 각각 모두 QA task인 bAbI QA task, Wiki-movies question-answering task, SQuAD v1.1 task를 사용했습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1A9Uy4Dx8CKTeip10Zm2JOHQHgeV_Uiwe&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;먼저 Approximation 방식에 대한 End-to-End accuracy를 계산했는데요, conservative한 approximation을 사용할 때는, 전체 accuracy가 크게 떨어지지 않음을 볼 수 있습니다. 다만, Aggressive한 approximation을 사용하면 accuracy가 꽤 떨어짐을 볼 수 있는데요, 연구진들은 이에 대해 Aggressive한 approximation을 사용할 때는 speedup과 energy efficiency 증가 효과로 인해 더 큰 모델을 사용할 수 있고, 이를 통해 더 좋은 정확도를 얻을 수도 있을 거라고 예상합니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://drive.google.com/uc?export=view&amp;amp;id=1vTGynZfJ6y1UjnuAQjPhmMku8AX65RU-&quot; alt=&quot;ex_screenshot&quot; /&gt;&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;또한, A3 architecture를 사용했을 때, Throughput과 Latency를 구해보았는데요, 그 결과 CPU(Intel Xeon Gold 6128)나 GPU(NVIDIA Titan V)를 사용했을 때보다 훨씬 좋은 성능을 보여줌을 확인 할 수 있었습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;a name=&quot;footnote_1&quot;&gt;1&lt;/a&gt;: Ham, Tae Jun et al. “A^3: Accelerating Attention Mechanisms in Neural Networks with Approximation.” 2020 IEEE International Symposium on High Performance Computer Architecture (HPCA) (2020): 328-341.&lt;/p&gt;</content><author><name>Your Name</name></author><category term="Microarchitecture" /><category term="AI 가속기" /><category term="Transformer" /><summary type="html">안녕하세요, 오늘은 Attention mechanism의 가속화에 대한 논문1을 리뷰하겠습니다. 해당 논문은 2020 HPCA에 발표되었습니다.</summary></entry><entry><title type="html">Backtrader(7): Sell &amp;amp; commision</title><link href="/backtrader/backtrader2/" rel="alternate" type="text/html" title="Backtrader(7): Sell &amp;amp; commision" /><published>2021-01-07T00:00:00+00:00</published><updated>2021-01-07T00:00:00+00:00</updated><id>/backtrader/backtrader2</id><content type="html" xml:base="/backtrader/backtrader2/">&lt;h2 id=&quot;sell--commision&quot;&gt;Sell &amp;amp; Commision&lt;/h2&gt;
+
+&lt;p&gt;이전의 코드는 주식을 매수(BUY)만 할 뿐, 매도(SELL)하지는 않았습니다. 그래서 이번에는 매도하는 기능을 추가해보도록 하겠습니다. BUY 전략은 동일하되, 매도가 일어난 뒤 5일 뒤에 매도하는 전략을 사용해보겠습니다.&lt;/p&gt;
+
+&lt;p&gt;또한, 현재는 주식을 거래할 때 수수료가 붇지 않는데요, 실제 트레이딩에서는 수수료가 붙기 마련입니다. 이 역시 backtrader에서 간단하게 적용할 수 있으므로 수수료를 설정해보도록 하겠습니다.&lt;/p&gt;
+
+&lt;p&gt;마지막으로 이전의 코드에서 log를 이용해 Buy order를 기록했었는데요, 사실 이 log는 정확하지 않습니다. 이유는 order가 ‘발생’하는 시간과 ‘실행’되는 시간이 다르기 때문인데요, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buy &lt;/code&gt;와 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sell&lt;/code&gt; 메쏘드를 기본값으로 실행하게 되면 시장이 열려 있을 때 중 가장 빠른 타이밍에 거래를 진행하게 됩니다. 현재 우리는 close(종가)를 이용해 전략을 세웠으므로, 거래 타이밍은 다음 날 주식시장이 열리는 시각이 됩니다. 따라서, buy order를 생성하면 다음 날 open 가격에 주식을 살 수 있습니다.&lt;/p&gt;
+
+&lt;p&gt;아래는 코드와 그 결과입니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;__future__&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;absolute_import&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;print_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;unicode_literals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;datetime&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 시간, 날짜 데이터 타입이 있는 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;os.path&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 파일의 path를 관리하기 위한 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;sys&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# system 전반적인 컨트롤을 위한 라이브러리로, 여기서는 script의 이름(argv[0])을 읽기 위해 사용됩니다
+&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# backtrader 플랫폼을 import합니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;backtrader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# 금융 데이터 수집 라이브러리입니다
+# https://financedata.github.io/index.html
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;FinanceDataReader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Strategy를 수립합니다
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Strategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# Strategy가 잘 작동하고 있는지 기록하는 함수입니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 앞으로 대다수의 로그는 이 함수를 이용해 기록될 예정입니다
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'%s, %s'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isoformat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 과거 주식 데이터가 self.datas에 저장되어있고,
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# close(종가)를 추적하기 위해 멤버 변수를 설정했습니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;# 보류중인 order를 추적합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;# 매수가와 수수료를 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buyprice&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buycomm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;        
+        
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notify_order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Submitted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Accepted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;# Bu/Sell order가 broker에 의해 접수되었을 때입니다
+&lt;/span&gt;            &lt;span class=&quot;c1&quot;&gt;# 아무것도 하지 않고 반환합니다
+&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# order가 완료되었는지 체크합니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 이 때, broker가 충분한 cash를 보유하고 있지 않으면 거절할 수 있습니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Completed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isbuy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                    &lt;span class=&quot;s&quot;&gt;'BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                     &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                     &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buyprice&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buycomm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# Sell
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                         &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                          &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                          &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+            &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar_executed&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Canceled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Margin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Rejected&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Order Canceled/Margin/Rejected'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# self.order에 현재 보류중인 order가 없음을 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notify_trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isclosed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'OPERATION PROFIT, GROSS %.2f, NET %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                 &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pnl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pnlcomm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+        
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 현재 시점에서 close를 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Close, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# 만약 order가 보류중인 경우 연속해서 order를 보내지 않습니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;# 현재 진입했는지 체크합니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 진입하지 않은 경우에 매수를 진행하고,
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 진입한 경우에 매도를 진행해야 할 것입니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;position&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;        
+        
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# 현재 close가 전날 close보다 작은 상황입니다
+&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+                    &lt;span class=&quot;c1&quot;&gt;# 또한 전날 close가 전전날 close보다 작은 상황입니다 
+&lt;/span&gt;
+                    &lt;span class=&quot;c1&quot;&gt;# 주식을 매수합니다. 다만 현재에는 기본 파라미터만을 사용하여 매수를 진행합니다
+&lt;/span&gt;                    &lt;span class=&quot;c1&quot;&gt;# 파라미터를 어떻게 설정할 수 있는지는 추후에 보도록 하겠습니다
+&lt;/span&gt;                    &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'BUY CREATE, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+                    
+                    &lt;span class=&quot;c1&quot;&gt;# order가 발생한 경우 이를 기록합니다
+&lt;/span&gt;                    &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+                    
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+
+            &lt;span class=&quot;c1&quot;&gt;# 이미 진입한 경우 주식을 매도합니다
+&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar_executed&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# Buy와 마찬가지로 기본값으로 매수합니다
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'SELL CREATE, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+                &lt;span class=&quot;c1&quot;&gt;# 역시 order가 발생한 경우 이를 기록합니다
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sell&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;        
+
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 전략을 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addstrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 신라젠(215600)의 2018년 데이터를 불러옵니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;df&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataReader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'215600'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'2018'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;feeds&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PandasData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 data feed를 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;adddata&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 초기 자본을 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;100000.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;# 0.1%의 수수료를 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcommission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;commission&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.001&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Starting Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Final Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Starting Portfolio Value: 1000000.00
+2018-01-02, Close, 102500.00
+2018-01-03, Close, 103000.00
+2018-01-04, Close, 92200.00
+2018-01-05, Close, 100000.00
+2018-01-08, Close, 93800.00
+2018-01-09, Close, 109000.00
+2018-01-10, Close, 98000.00
+2018-01-11, Close, 96700.00
+2018-01-11, BUY CREATE, 96700.00
+2018-01-12, BUY EXECUTED, Price: 99800.00, Cost: 99800.00, Comm 99.80
+2018-01-12, Close, 98100.00
+2018-01-15, Close, 103900.00
+2018-01-16, Close, 102900.00
+2018-01-17, Close, 106900.00
+2018-01-18, Close, 105200.00
+2018-01-19, Close, 103000.00
+2018-01-19, SELL CREATE, 103000.00
+2018-01-22, SELL EXECUTED, Price: 102600.00, Cost: 99800.00, Comm 102.60
+2018-01-22, OPERATION PROFIT, GROSS 2800.00, NET 2597.60
+2018-01-22, Close, 104100.00
+2018-01-23, Close, 115000.00
+...
+...
+...
+Final Portfolio Value: 979142.30
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;코드에 대한 설명은 주석으로 달아놓았습니다. 전략이 단순한 만큼 엄청난 손해가 발생했습니다.&lt;/p&gt;
+
+&lt;h2 id=&quot;parameters--sizers&quot;&gt;Parameters &amp;amp; sizers&lt;/h2&gt;
+
+&lt;p&gt;현재는 strategy가 하드코딩되어있습니다. 이 말은 strategy가 코드로 고정되어 있다는 말로, 저희가 쉽게 전략을 바꿔가면서 테스트해볼 수 없습니다. 예를 들어 우리가 매도하는 타이밍을 매수햐고 5일 뒤가 아닌, 매수하고 10일 뒤로 변경해보고 싶을 때, 직접 관련되 코드를 찾아 바꿔줘야 합니다. 현재는 전략이 간단하여 쉽게 바꿀 수 있지만, 앞으로 복잡한 전략을 테스트할 경우 이런 점들이 상당히 불편할 것입니다.&lt;/p&gt;
+
+&lt;p&gt;다행히도 backtrader에서는 이러한 parameter들을 지정할 수 있는 기능을 가지고 있습니다. 먼저 strategy class 내에&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;params&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'myparam'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;27&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'exitbars'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;이와 같은 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;params&lt;/code&gt; 멤버 변수를 설정해주고, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cerebro.addstrategy&lt;/code&gt;를 아래와 같이 변경해주면 됩니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# Add a strategy
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addstrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;myparam&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exitbars&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;또한, 주식을 매수할 때 얼마나 살 것인지 결정하는 기능으로 sizer가 있습니다. 이에 대해서는 자세히 알아보도록 하고, 만약 현재의 10배 단위로 주식을 거래하고 싶으면 아래와 같은 코드를 추가하면 됩니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addsizer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sizers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FixedSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stake&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;아래는 전체 코드입니다. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;params&lt;/code&gt; 멤버 변수와 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sell()&lt;/code&gt;를 실행하는 부분 위주로 보시길 바랍니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;__future__&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;absolute_import&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;print_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;unicode_literals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;datetime&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 시간, 날짜 데이터 타입이 있는 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;os.path&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 파일의 path를 관리하기 위한 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;sys&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# system 전반적인 컨트롤을 위한 라이브러리로, 여기서는 script의 이름(argv[0])을 읽기 위해 사용됩니다
+&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# backtrader 플랫폼을 import합니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;backtrader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# 금융 데이터 수집 라이브러리입니다
+# https://financedata.github.io/index.html
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;FinanceDataReader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Strategy를 수립합니다
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Strategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;# parameters를 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;params&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'exitbars'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# Strategy가 잘 작동하고 있는지 기록하는 함수입니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 앞으로 대다수의 로그는 이 함수를 이용해 기록될 예정입니다
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'%s, %s'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isoformat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 과거 주식 데이터가 self.datas에 저장되어있고,
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# close(종가)를 추적하기 위해 멤버 변수를 설정했습니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;# 보류중인 order를 추적합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;# 매수가와 수수료를 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buyprice&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buycomm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;        
+        
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notify_order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Submitted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Accepted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;# Bu/Sell order가 broker에 의해 접수되었을 때입니다
+&lt;/span&gt;            &lt;span class=&quot;c1&quot;&gt;# 아무것도 하지 않고 반환합니다
+&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# order가 완료되었는지 체크합니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 이 때, broker가 충분한 cash를 보유하고 있지 않으면 거절할 수 있습니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Completed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isbuy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                    &lt;span class=&quot;s&quot;&gt;'BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                     &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                     &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buyprice&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buycomm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# Sell
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                         &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                          &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                          &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;comm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+            &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar_executed&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Canceled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Margin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Rejected&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Order Canceled/Margin/Rejected'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# self.order에 현재 보류중인 order가 없음을 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notify_trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isclosed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'OPERATION PROFIT, GROSS %.2f, NET %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;
+                 &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pnl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pnlcomm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+        
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 현재 시점에서 close를 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Close, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# 만약 order가 보류중인 경우 연속해서 order를 보내지 않습니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;# 현재 진입했는지 체크합니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 진입하지 않은 경우에 매수를 진행하고,
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 진입한 경우에 매도를 진행해야 할 것입니다
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;position&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;        
+        
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# 현재 close가 전날 close보다 작은 상황입니다
+&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+                    &lt;span class=&quot;c1&quot;&gt;# 또한 전날 close가 전전날 close보다 작은 상황입니다 
+&lt;/span&gt;
+                    &lt;span class=&quot;c1&quot;&gt;# 주식을 매수합니다. 다만 현재에는 기본 파라미터만을 사용하여 매수를 진행합니다
+&lt;/span&gt;                    &lt;span class=&quot;c1&quot;&gt;# 파라미터를 어떻게 설정할 수 있는지는 추후에 보도록 하겠습니다
+&lt;/span&gt;                    &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'BUY CREATE, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+                    
+                    &lt;span class=&quot;c1&quot;&gt;# order가 발생한 경우 이를 기록합니다
+&lt;/span&gt;                    &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+                    
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+
+            &lt;span class=&quot;c1&quot;&gt;# 이미 진입한 경우 주식을 매도합니다
+&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar_executed&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exitbars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# Buy와 마찬가지로 기본값으로 매수합니다
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'SELL CREATE, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+                &lt;span class=&quot;c1&quot;&gt;# 역시 order가 발생한 경우 이를 기록합니다
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sell&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;        
+
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 전략을 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addstrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 신라젠(215600)의 2018년 데이터를 불러옵니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;df&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataReader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'215600'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'2018'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;feeds&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PandasData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 data feed를 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;adddata&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 초기 자본을 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;1000000.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;# sizer를 추가하되, 주식의 양을 결정하는 stake 인자를 10으로 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addsizer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sizers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;FixedSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stake&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;# 0.1%의 수수료를 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcommission&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;commission&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.001&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Starting Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Final Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Starting Portfolio Value: 1000000.00
+2018-01-02, Close, 102500.00
+2018-01-03, Close, 103000.00
+2018-01-04, Close, 92200.00
+2018-01-05, Close, 100000.00
+2018-01-08, Close, 93800.00
+2018-01-09, Close, 109000.00
+2018-01-10, Close, 98000.00
+2018-01-11, Close, 96700.00
+2018-01-11, BUY CREATE, 96700.00
+2018-01-12, BUY EXECUTED, Price: 99800.00, Cost: 998000.00, Comm 998.00
+2018-01-12, Close, 98100.00
+2018-01-15, Close, 103900.00
+2018-01-16, Close, 102900.00
+2018-01-17, Close, 106900.00
+2018-01-18, Close, 105200.00
+2018-01-19, Close, 103000.00
+2018-01-19, SELL CREATE, 103000.00
+2018-01-22, SELL EXECUTED, Price: 102600.00, Cost: 998000.00, Comm 1026.00
+2018-01-22, OPERATION PROFIT, GROSS 28000.00, NET 25976.00
+2018-01-22, Close, 104100.00
+2018-01-23, Close, 115000.00
+...
+...
+...
+2021-01-06, Close, 12100.00
+2021-01-07, Close, 12100.00
+Final Portfolio Value: 791423.00
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;stake를 10으로 설정하였더니, 이전보다 이익과 손해 (GROSS) 모두 10씩 곱해진 점을 확인할 수 있습니다.&lt;/p&gt;</content><author><name>Your Name</name></author><category term="Backtrader" /><category term="Backtrader" /><category term="Quant" /><summary type="html">Sell &amp;amp; Commision</summary></entry><entry><title type="html">Backtrader(1): Introduction</title><link href="/backtrader/backtrader1/" rel="alternate" type="text/html" title="Backtrader(1): Introduction" /><published>2021-01-05T00:00:00+00:00</published><updated>2021-01-05T00:00:00+00:00</updated><id>/backtrader/backtrader1</id><content type="html" xml:base="/backtrader/backtrader1/">&lt;p&gt;안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다.&lt;br /&gt;
+본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.&lt;/p&gt;
+
+&lt;p&gt;먼저 Docu의 Introduction 항목을 보면 backtrader의 두 가지 목표가 아래와 같이 나와있습니다. (“베스트 키드”에서 미야기의 룰을 인용했다고 밝히기도 합니다.)&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;손쉬운 사용&lt;/li&gt;
+  &lt;li&gt;1번으로 돌아갈 것&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;이처럼 사용의 용이성을 목표로 만들었지만, 퀀트와 백테스팅 개념 자체가 익숙치 않은 만큼 곧바로 사용하기는 어려웠습니다. 그래서 관련된 자료를 찾아보던 중 한국어로 된 자료가 많지 않아 앞으로 공부한 내용을 정리해보려 합니다.&lt;/p&gt;
+
+&lt;h2 id=&quot;basic-setup--setting-the-cash&quot;&gt;Basic Setup &amp;amp; Setting the Cash&lt;/h2&gt;
+
+&lt;p&gt;먼저 기본 코드를 살펴보겠습니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;__future__&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;absolute_import&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;print_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;unicode_literals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;backtrader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;1000000.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Starting Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Final Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Starting Portfolio Value: 1000000.00
+Final Portfolio Value: 1000000.00
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;첫 줄의 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;from __future__ import ...&lt;/code&gt; 부분은 Python 2와 3의 호환을 위한 부분으로, Python 2에서 Python 3의 문법을 사용하기 위해 사용됩니다. 현재 대부분의 유저가 Python 3을 사용하고 있으니 신경쓰지 않아도 되겠습니다. 그리고 backtrader를 import 합니다.&lt;/p&gt;
+
+&lt;p&gt;main 부분에서는 Cerebro engine을 초기화하는데요, 이 Cerebro는 backtrader의 초석&lt;sup&gt;&lt;a href=&quot;#footnote_1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; 같은 존재입니다. backtrader의 중심이 되는 부분으로 Data Feeds, strategy, observers, analyzers, writers 등을 저장하고, backtesting이나 trading을 진행한다고 합니다. 앞으로 대부분의 과정이 이 Cerebro를 조작한다고 보시면 될 것 같습니다.&lt;/p&gt;
+
+&lt;p&gt;다음으로 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cerebro.broker.setcash(1000000.0)&lt;/code&gt;이 있는데요, broker는 트레이딩을 진행하는 브로커, setcash는 초기 자본을 설정하는 부분입니다.&lt;/p&gt;
+
+&lt;p&gt;마지막으로 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cerebro.run()&lt;/code&gt;을 이용해 cerebro engine을 수행합니다. 본 문서에서는 백테스팅을 실행하는 부분이 되겠군요. 아직 Data feeds나 Strategy를 지정하지 않았으므로 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cerebro.broker.getvalue()&lt;/code&gt;를 이용해 잔고를 출력했을 때, 그대로임을 볼 수 있습니다.&lt;/p&gt;
+
+&lt;h2 id=&quot;adding-a-data-feed--first-strategy&quot;&gt;Adding a Data Feed &amp;amp; First strategy&lt;/h2&gt;
+
+&lt;p&gt;다음으로 Data feed를 전달하고, 간단한 트레이딩 전략을 사용하여 백테스팅을 수행해보겠습니다.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;__future__&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;absolute_import&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;print_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                        &lt;span class=&quot;n&quot;&gt;unicode_literals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;datetime&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 시간, 날짜 데이터 타입이 있는 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;os.path&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 파일의 path를 관리하기 위한 라이브러리입니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;sys&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# system 전반적인 컨트롤을 위한 라이브러리로, 여기서는 script의 이름(argv[0])을 읽기 위해 사용됩니다
+&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# backtrader 플랫폼을 import합니다
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;backtrader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# 금융 데이터 수집 라이브러리입니다
+# https://financedata.github.io/index.html
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;FinanceDataReader&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Strategy를 수립합니다
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Strategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# Strategy가 잘 작동하고 있는지 기록하는 함수입니다
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# 앞으로 대다수의 로그는 이 함수를 이용해 기록될 예정입니다
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'%s, %s'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isoformat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;txt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 과거 주식 데이터가 self.datas에 저장되어있고,
+&lt;/span&gt;        &lt;span class=&quot;c1&quot;&gt;# close(종가)를 추적하기 위해 멤버 변수를 설정했습니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datas&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;# 현재 시점에서 close를 기록합니다
+&lt;/span&gt;        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Close, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;# 현재 close가 전날 close보다 작은 상황입니다
+&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# 또한 전날 close가 전전날 close보다 작은 상황입니다 
+&lt;/span&gt;
+                &lt;span class=&quot;c1&quot;&gt;# 주식을 매수합니다. 다만 현재에는 기본 파라미터만을 사용하여 매수를 진행합니다
+&lt;/span&gt;                &lt;span class=&quot;c1&quot;&gt;# 파라미터를 어떻게 설정할 수 있는지는 추후에 보도록 하겠습니다
+&lt;/span&gt;                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'BUY CREATE, %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataclose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+                &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 전략을 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;addstrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TestStrategy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 신라젠(215600)의 2018년 데이터를 불러옵니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;df&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fdr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataReader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'215600'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'2018'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;feeds&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PandasData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# cerebro에 data feed를 추가해줍니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;adddata&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# 초기 자본을 설정합니다
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setcash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;100000.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Starting Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Final Portfolio Value: %.2f'&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cerebro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;broker&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getvalue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;코드에 대한 설명은 주석으로 달아놓았습니다.&lt;/p&gt;
+
+&lt;p&gt;다만, 살펴보아야 하는 부분들이 있는데요, 첫번째로 FinanceDataReader에 대한 부분입니다. 이 라이브러리는 금융 데이터를 수집하기 위해 개발된 라이브러리인데요, 손쉽게 사용 가능하고, 한글로 된 설명서가 있어 추천드리고 싶습니다. 관심있으신 분은 &lt;a href=&quot;https://financedata.github.io/posts/finance-data-reader-users-guide.html&quot;&gt;FinanceDataReader 사용자 안내서&lt;/a&gt;를 참고하시면 좋겠습니다.&lt;/p&gt;
+
+&lt;p&gt;다음으로 Strategy를 수립하는 부분입니다. 현재 Strategy는 Close가 두번 연속으로 하락했을 때 매수를 진행하는데요, 이를 위해 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.dataclose&lt;/code&gt;를 사용했습니다. backtrader에서 index 0은 대개 현재 날짜를 의미합니다. 따라서, 전날 데이터를 조회하고 싶을 때는 -1, 전전날 데이터를 조회하고 싶을 때는 -2를 사용합니다.&lt;/p&gt;
+
+&lt;p&gt;마지막으로 현재 코드에서는 주식을 “얼마나” 매수할 것인지 나와있지 않은데요, 이후에 이를 설정하는 방법에 대해 살펴보겠습니다.&lt;/p&gt;
+
+&lt;p&gt;&lt;a name=&quot;footnote_1&quot;&gt;1&lt;/a&gt;: https://www.backtrader.com/docu/cerebro/&lt;/p&gt;</content><author><name>Your Name</name></author><category term="Backtrader" /><category term="Backtrader" /><category term="Quant" /><summary type="html">안녕하세요. 오늘은 파이썬의 백 테스팅 프레임워크인 backtrader에 대해 공부해보겠습니다. 본 포스트는 https://www.backtrader.com/docu/ 를 참고했음을 미리 밝힙니다.</summary></entry><entry><title type="html">Eyeriss 리뷰: CNN 가속기</title><link href="/system,%20architecture/Eyeriss/" rel="alternate" type="text/html" title="Eyeriss 리뷰: CNN 가속기" /><published>2021-01-02T00:00:00+00:00</published><updated>2021-01-02T00:00:00+00:00</updated><id>/system,%20architecture/Eyeriss</id><content type="html" xml:base="/system,%20architecture/Eyeriss/">&lt;p&gt;Nested and mixed lists are an interesting beast. It’s a corner case to make sure that&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Lists within lists do not break the ordered list numbering order&lt;/li&gt;
+  &lt;li&gt;Your list styles go deep enough.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;ordered--unordered--ordered&quot;&gt;Ordered – Unordered – Ordered&lt;/h1&gt;
+&lt;h2 id=&quot;ordered--unordered--ordered-1&quot;&gt;Ordered – Unordered – Ordered&lt;/h2&gt;
+&lt;h3 id=&quot;ordered--unordered--ordered-2&quot;&gt;Ordered – Unordered – Ordered&lt;/h3&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+  &lt;li&gt;ordered item
+    &lt;ul&gt;
+      &lt;li&gt;&lt;strong&gt;unordered&lt;/strong&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;unordered&lt;/strong&gt;
+        &lt;ol&gt;
+          &lt;li&gt;ordered item&lt;/li&gt;
+          &lt;li&gt;ordered item&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;ordered--unordered--unordered&quot;&gt;Ordered – Unordered – Unordered&lt;/h3&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+  &lt;li&gt;ordered item
+    &lt;ul&gt;
+      &lt;li&gt;&lt;strong&gt;unordered&lt;/strong&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;unordered&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;unordered item&lt;/li&gt;
+          &lt;li&gt;unordered item&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+  &lt;li&gt;ordered item&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;unordered--ordered--unordered&quot;&gt;Unordered – Ordered – Unordered&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+  &lt;li&gt;unordered item
+    &lt;ol&gt;
+      &lt;li&gt;ordered&lt;/li&gt;
+      &lt;li&gt;ordered
+        &lt;ul&gt;
+          &lt;li&gt;unordered item&lt;/li&gt;
+          &lt;li&gt;unordered item&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;unordered--unordered--ordered&quot;&gt;Unordered – Unordered – Ordered&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+  &lt;li&gt;unordered item
+    &lt;ul&gt;
+      &lt;li&gt;unordered&lt;/li&gt;
+      &lt;li&gt;unordered
+        &lt;ol&gt;
+          &lt;li&gt;&lt;strong&gt;ordered item&lt;/strong&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;ordered item&lt;/strong&gt;&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+  &lt;li&gt;unordered item&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;task-lists&quot;&gt;Task Lists&lt;/h3&gt;
+
+&lt;ul class=&quot;task-list&quot;&gt;
+  &lt;li class=&quot;task-list-item&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;task-list-item-checkbox&quot; disabled=&quot;disabled&quot; checked=&quot;checked&quot; /&gt;Finish my changes&lt;/li&gt;
+  &lt;li class=&quot;task-list-item&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;task-list-item-checkbox&quot; disabled=&quot;disabled&quot; /&gt;Push my commits to GitHub&lt;/li&gt;
+  &lt;li class=&quot;task-list-item&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;task-list-item-checkbox&quot; disabled=&quot;disabled&quot; /&gt;Open a pull request&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Your Name</name></author><category term="System, Architecture" /><category term="CNN" /><summary type="html">Nested and mixed lists are an interesting beast. It’s a corner case to make sure that</summary></entry><entry><title type="html">Test</title><link href="/test/" rel="alternate" type="text/html" title="Test" /><published>2020-10-01T00:00:00+00:00</published><updated>2020-10-01T00:00:00+00:00</updated><id>/test</id><content type="html" xml:base="/test/">&lt;h1 id=&quot;안녕하세요&quot;&gt;안녕하세요&lt;/h1&gt;</content><author><name>Your Name</name></author><summary type="html">안녕하세요</summary></entry><entry><title type="html">Test 2</title><link href="/test-2/" rel="alternate" type="text/html" title="Test 2" /><published>2020-10-01T00:00:00+00:00</published><updated>2020-10-01T00:00:00+00:00</updated><id>/test%202</id><content type="html" xml:base="/test-2/">&lt;h1 id=&quot;테스트중입니다&quot;&gt;테스트중입니다.&lt;/h1&gt;</content><author><name>Your Name</name></author><summary type="html">테스트중입니다.</summary></entry></feed>
